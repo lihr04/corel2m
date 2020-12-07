@@ -103,7 +103,7 @@ class SketchMAS():
             loss_sketch[r].backward(retain_graph=True) #Get gradient
             ### Update the temporary precision matrix
             for n, p in self.model.named_parameters():
-                jacobian_matrices[n].data += p.grad.data / math.sqrt(n_data)
+                jacobian_matrices[n].data[r] += p.grad.data / math.sqrt(n_data)
 
         # Here is the online part of the EWC. Instead of saving a precision Matrix
         # for each task, we take a running average of them. This is described in

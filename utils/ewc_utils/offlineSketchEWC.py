@@ -10,32 +10,22 @@ from torch import nn
 from torch.nn import functional as F
 
 
-class SketchEWC():
-    def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_bucket=10):
+class OfflineSketchEWC():
+    def __init__(self, model: nn.Module, device='cuda:0', n_bucket=10):
         """ OnlineEWC is the class for implementing the online EWC method.
             Inputs:
                 model : a Pytorch NN model
                 device (string): the device to run the model on
-                alpha (in [0,1) ): The online learning hyper-parameter
         """
         self.LARGEPRIME = 2**61-1
         
         self.device=device
-        self.alpha=alpha
         self.model = model.to(self.device)
         self.n_bucket = n_bucket
-
-        self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
-        self._means = {}
-
-        self._jacobian_matrices ={}
-
-        for n, p in deepcopy(self.params).items():
-            self._jacobian_matrices[n] = torch.zeros(n_bucket, p.shape[0], p.shape[1]).to(self.device)
-
-        for n, p in deepcopy(self.params).items():
-            self._means[n] = p.data.to(self.device)
-
+        
+        self._jacobian_matrices = []
+        self._means = []
+        
 
     def consolidate(self,dataloader,labels=None):
         ''' Consolidate
@@ -47,7 +37,7 @@ class SketchEWC():
         '''
         # Initialize a temporary jacobian matrix
         jacobian_matrices = {}
-        for n, p in deepcopy(self.params).items():
+        for n, p in self.model.named_parameters():
             jacobian_matrices[n] = torch.zeros(self.n_bucket, p.shape[0], p.shape[1]).to(self.device)
 
         # Set the model in the evaluation mode
@@ -108,17 +98,15 @@ class SketchEWC():
             loss_sketch[r].backward(retain_graph=True) #Get gradient
             ### Update the temporary precision matrix
             for n, p in self.model.named_parameters():
-                jacobian_matrices[n].data[r] += p.grad.data / math.sqrt(n_data)
+                jacobian_matrices[n].data += p.grad.data / math.sqrt(n_data)
 
-        # Here is the online part of the EWC. Instead of saving a precision Matrix
-        # for each task, we take a running average of them. This is described in
-        # Chaudhry et al. ECCV2018 and also in Shwarz et al. ICML2018.
-
+        # Here is the offline part of the EWC.
+        
+        means = {}
         for n, p in self.model.named_parameters():
-            # Update the precision matrix
-            self._jacobian_matrices[n]=self.alpha*self._jacobian_matrices[n]+(1-self.alpha)*jacobian_matrices[n]
-            # Update the means
-            self._means[n] = deepcopy(p.data).to(self.device)
+            means[n] = deepcopy(p.data).to(self.device)
+        self._jacobian_matrices.append(jacobian_matrices)
+        self._means.append(means)
 
 
     def penalty(self, model: nn.Module):
@@ -126,8 +114,11 @@ class SketchEWC():
             This function receives the current model with its weights, and calculates
             the online EWC loss.
         '''
-        vector = torch.zeros(self.n_bucket).to(self.device)
-        for n, p in model.named_parameters():
-            vector += torch.sum(self._jacobian_matrices[n] * (p - self._means[n]), dim=(1,2))
-        loss = torch.sum(vector ** 2)
+        loss = 0
+        num_task = len(self._jacobian_matrices)
+        for i in range(num_task):
+            vector = torch.zeros(self.n_bucket).to(self.device)
+            for n, p in model.named_parameters():
+                vector += torch.sum(self._jacobian_matrices[i][n] * (p - self._means[i][n]), dim=(1,2))
+            loss += torch.sum(vector ** 2) / num_task
         return loss
