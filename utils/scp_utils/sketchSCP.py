@@ -52,13 +52,16 @@ class SketchSCP(object):
         
 #         tic = time.time()
 
-        # Initialize a temporary precision matrix
-        jacobian_matrices = {}
-        for n, p in deepcopy(self.params).items():
-            jacobian_matrices[n] = torch.zeros(self.n_bucket, self.n_slices, p.shape[0], p.shape[1]).to(self.device)
-
         # Set the model in the evaluation mode
         self.model.eval()
+
+        # Here we follow a similar approach as in the online EWC framework presented in
+        # Chaudhry et al. ECCV2018 and also in Shwarz et al. ICML2018.
+        for n, p in self.model.named_parameters():
+            # Update the precision matrix
+            self._jacobian_matrices[n] *= self.alpha
+            # Update the means
+            self._means[n] = deepcopy(p.data).to(self.device)
 
         # initialize hashing functions for each row:
         # 2 random numbers for bucket hashes + 4 random numbers for
@@ -112,17 +115,9 @@ class SketchSCP(object):
                 output_sketch[l,k].backward(retain_graph=True) # Get gradients
                 ### Update the temporary precision matrix
                 for n, p in self.model.named_parameters():
-                    jacobian_matrices[n].data[l,k] += p.grad.data / math.sqrt(n_data)
+                    self._jacobian_matrices[n].data[l,k] += (1-self.alpha) * p.grad.data / math.sqrt(n_data)
 #                 toc = time.time()
 #                 print(toc-tic)
-
-        # Here we follow a similar approach as in the online EWC framework presented in
-        # Chaudhry et al. ECCV2018 and also in Shwarz et al. ICML2018.
-        for n, p in self.model.named_parameters():
-            # Update the precision matrix
-            self._jacobian_matrices[n]=self.alpha*self._jacobian_matrices[n]+(1-self.alpha)*jacobian_matrices[n]
-            # Update the means
-            self._means[n] = deepcopy(p.data).to(self.device)
 
 
     # Now we need to generate the the EWC updated loss
