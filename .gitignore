@@ -1,4 +1,4 @@
-saved_models
 debug.log
-perm_mnist_*
 Error_Analysis
+logs
+*.out
