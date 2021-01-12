@@ -31,6 +31,7 @@ parser.add_argument('--importance-power', '-p', nargs="*", type=int,  help='list
 parser.add_argument('--bucket', '-b', nargs="*", type=int,  help='list of bucket number', default=1)
 parser.add_argument('--slice', '-s', type=int, help='number of slices in SCP', default=10)
 parser.add_argument('--result-folder', type=str, default='perm_mnist_10Run/')
+parser.add_argument('--result-filename', type=str)
 args = parser.parse_args()
 
 #%% Folders
@@ -149,4 +150,8 @@ for importance_power, n_bucket in hyperparameter_list:
     print("Accuracy: " + str(mean_acc[-1]))
 
 #%% Save results
-pickle.dump([loss_list, acc_list, hyperparameter_list], open(results_folder+'experiment_%s_id_%d.pkl'%(args.regularizer, args.id),'wb'))
+if args.result_filename is None:
+    pickle.dump([loss_list, acc_list, hyperparameter_list], open(results_folder+'experiment_%s_id_%d.pkl'%(args.regularizer, args.id),'wb'))
+else:
+    pickle.dump([loss_list, acc_list, hyperparameter_list], open(results_folder+'experiment_%s_id_%d_%s.pkl'%(args.regularizer, args.id, args.result_filename),'wb'))
+
