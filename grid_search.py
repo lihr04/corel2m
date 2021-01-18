@@ -21,22 +21,24 @@ from utils.mas_utils.sketchMAS import SketchMAS
 from utils.scp_utils.scp import SCP
 from utils.scp_utils.sketchSCP import SketchSCP
 from data.permuted_MNIST import get_permuted_mnist
+from data.rotated_MNIST import get_rotated_mnist
 
 #%% Input arguments
 parser = argparse.ArgumentParser(description=' ')
+parser.add_argument('--data', '-d', type=str, help='perm_mnist/rotated_mnist', default='perm_mnist')
 parser.add_argument('--regularizer', '-r', type=str, help='(Sketch)(EWC/MAS/SCP)', required=True)
 parser.add_argument('--id', '-i', type=int, help='experiment id', required=True)
 parser.add_argument('--task', '-t', type=int, help='number of tasks', default=10)
 parser.add_argument('--importance-power', '-p', nargs="*", type=int,  help='list of power of importance', default=0)
 parser.add_argument('--bucket', '-b', nargs="*", type=int,  help='list of bucket number', default=1)
 parser.add_argument('--slice', '-s', type=int, help='number of slices in SCP', default=10)
-parser.add_argument('--result-folder', type=str, default='perm_mnist_10Run/')
+parser.add_argument('--result-folder', type=str, default='5Run')
 parser.add_argument('--result-filename', type=str)
 args = parser.parse_args()
 
 #%% Folders
 
-results_folder = args.result_folder
+results_folder = args.data + '_' + args.result_folder + '/' 
 
 if not os.path.isdir(results_folder):
     os.mkdir(results_folder)
@@ -71,7 +73,10 @@ random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
 
-train_loader, test_loader = get_permuted_mnist(num_task,batch_size)
+if args.data == 'perm_mnist':
+    train_loader, test_loader = get_permuted_mnist(num_task,batch_size)
+else if args.data == 'rotated_mnist':
+    train_loader, test_loader = get_rotated_mnist(num_task,batch_size)
 
 
 #%% Model init
