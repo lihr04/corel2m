@@ -75,7 +75,7 @@ torch.manual_seed(seed)
 
 if args.data == 'perm_mnist':
     train_loader, test_loader = get_permuted_mnist(num_task,batch_size)
-else if args.data == 'rotated_mnist':
+elif args.data == 'rotated_mnist':
     train_loader, test_loader = get_rotated_mnist(num_task,batch_size)
 
 

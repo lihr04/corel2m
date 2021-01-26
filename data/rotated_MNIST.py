@@ -34,8 +34,8 @@ def get_rotated_mnist_single_task(task_id, batch_size, per_task_rotation=10):
         torchvision.transforms.transforms.Lambda(tmp_func),
         ])
 
-    train_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST("~/.torch/data/mnist", train=True, download=True, transform=transforms), batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
-    test_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST("~/.torch/data/mnist", train=False, download=True, transform=transforms),  batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    train_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST("~/.torch/data/mnist", train=True, download=True, transform=transforms), batch_size=batch_size, shuffle=False, num_workers=4)
+    test_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST("~/.torch/data/mnist", train=False, download=True, transform=transforms),  batch_size=batch_size, shuffle=False)
 
     return train_loader, test_loader
 

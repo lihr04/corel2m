@@ -35,7 +35,9 @@ class SketchSCP(object):
         self._jacobian_matrices = {}
 
         for n, p in deepcopy(self.params).items():
-            self._jacobian_matrices[n] = torch.zeros(n_bucket, n_slices, p.shape[0], p.shape[1]).to(self.device)
+            p.data.zero_()
+            self._jacobian_matrices[n] = torch.stack([torch.stack([p.data for i in range(n_slices)])
+                                                      for i in range(n_bucket)]).to(self.device)
 
         for n, p in deepcopy(self.params).items():
             self._means[n] = p.data.to(self.device)
@@ -115,7 +117,7 @@ class SketchSCP(object):
                 output_sketch[l,k].backward(retain_graph=True) # Get gradients
                 ### Update the temporary precision matrix
                 for n, p in self.model.named_parameters():
-                    self._jacobian_matrices[n].data[l,k] += (1-self.alpha) * p.grad.data / math.sqrt(n_data)
+                    self._jacobian_matrices[n].data[l,k] += (1-self.alpha) / math.sqrt(n_data) * p.grad.data
 #                 toc = time.time()
 #                 print(toc-tic)
 
@@ -128,6 +130,6 @@ class SketchSCP(object):
         '''
         matrix = torch.zeros(self.n_bucket, self.n_slices).to(self.device)
         for n, p in model.named_parameters():
-            matrix += torch.sum(self._jacobian_matrices[n] * (p - self._means[n]), dim=(2,3))
+            vector += torch.sum((self._jacobian_matrices[n] * (p - self._means[n])).view(self.n_bucket, self.n_slices, -1), dim=2)
         loss = torch.sum(matrix ** 2)
         return loss

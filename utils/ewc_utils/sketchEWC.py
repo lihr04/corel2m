@@ -28,10 +28,11 @@ class SketchEWC():
         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
         self._means = {}
 
-        self._jacobian_matrices ={}
+        self._jacobian_matrices = {}
 
         for n, p in deepcopy(self.params).items():
-            self._jacobian_matrices[n] = torch.zeros(n_bucket, p.shape[0], p.shape[1]).to(self.device)
+            p.data.zero_()
+            self._jacobian_matrices[n] = torch.stack([p.data for i in range(n_bucket)]).to(self.device)
 
         for n, p in deepcopy(self.params).items():
             self._means[n] = p.data.to(self.device)
@@ -45,10 +46,12 @@ class SketchEWC():
          input:
             dataloader : A Pytorch dataloader containing data from the task to be consolidated
         '''
-        # Initialize a temporary jacobian matrix
-        jacobian_matrices = {}
-        for n, p in deepcopy(self.params).items():
-            jacobian_matrices[n] = torch.zeros(self.n_bucket, p.shape[0], p.shape[1]).to(self.device)
+        # Here is the online part of the EWC. Instead of saving a precision Matrix
+        # for each task, we take a running average of them. This is described in
+        # Chaudhry et al. ECCV2018 and also in Shwarz et al. ICML2018.
+        
+        for n, p in self.model.named_parameters():
+            self._jacobian_matrices[n] *= self.alpha
 
         # Set the model in the evaluation mode
         self.model.eval()
@@ -108,15 +111,9 @@ class SketchEWC():
             loss_sketch[r].backward(retain_graph=True) #Get gradient
             ### Update the temporary precision matrix
             for n, p in self.model.named_parameters():
-                jacobian_matrices[n].data[r] += p.grad.data / math.sqrt(n_data)
-
-        # Here is the online part of the EWC. Instead of saving a precision Matrix
-        # for each task, we take a running average of them. This is described in
-        # Chaudhry et al. ECCV2018 and also in Shwarz et al. ICML2018.
+                self._jacobian_matrices[n].data[r] += (1-self.alpha) / math.sqrt(n_data) * p.grad.data 
 
         for n, p in self.model.named_parameters():
-            # Update the precision matrix
-            self._jacobian_matrices[n]=self.alpha*self._jacobian_matrices[n]+(1-self.alpha)*jacobian_matrices[n]
             # Update the means
             self._means[n] = deepcopy(p.data).to(self.device)
 
@@ -128,6 +125,6 @@ class SketchEWC():
         '''
         vector = torch.zeros(self.n_bucket).to(self.device)
         for n, p in model.named_parameters():
-            vector += torch.sum(self._jacobian_matrices[n] * (p - self._means[n]), dim=(1,2))
+            vector += torch.sum((self._jacobian_matrices[n] * (p - self._means[n])).view(self.n_bucket, -1), dim=1)
         loss = torch.sum(vector ** 2)
         return loss
