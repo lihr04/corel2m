@@ -2,4 +2,5 @@ debug.log
 Error_Analysis
 logs
 figure
+toy_example
 *.out
