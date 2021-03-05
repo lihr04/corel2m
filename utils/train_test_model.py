@@ -90,6 +90,47 @@ def regularized_train_classifier(regularizer, optimizer: torch.optim,
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 
+def regularized_train_classifier_1(regularizer, optimizer: torch.optim,
+                               data_loader: torch.utils.data.DataLoader,
+                               importance: float, device='cuda:0',labels=None):
+    ''' regularized_train
+    This function performs an epoch of training with regularized loss.
+    Inputs:
+        regularizer: the NN model with importance parameters
+        optimizer: the optimizer to be used
+        data_loader: the training data
+        device (str): the device to run optimization on [default 'cuda:0']
+        importance (float): the regularizer coefficient
+        device (str): the device to run optimization on [default 'cuda:0']
+    '''
+    regularizer.model.to(device)
+    regularizer.model.train()
+    criterion=nn.CrossEntropyLoss()
+    epoch_loss = 0
+    for img, target in data_loader:
+        img, target = img.to(device), target.type(torch.LongTensor).to(device)
+        optimizer.zero_grad()
+        
+        if labels is None:
+            output = regularizer.model(img)
+        else:
+            try:
+                output = regularizer.model.classifier(img)[:,labels]
+            except:
+                output = regularizer.model(img)[:,labels]
+                
+            for i,l in enumerate(labels):
+                target.data[target.data==l]=i
+            target.type(torch.LongTensor).to(device)           
+            
+        loss1 = criterion(output, target)
+        epoch_loss += loss1.item()
+        loss1.backward()
+        loss2 = regularizer.penalty(regularizer.model)        
+        loss = loss1+importance*loss2
+        optimizer.step()
+    return epoch_loss / float(len(data_loader))
+
 def onlineEWC_train_classifier(ewc: OnlineEWC, optimizer: torch.optim,
                                data_loader: torch.utils.data.DataLoader,
                                importance: float, device='cuda:0',labels=None):

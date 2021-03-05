@@ -136,6 +136,16 @@ class Lines():
             train_loader[i] = torch.utils.data.DataLoader(dataset=train, batch_size=batch_size, shuffle=True)
             test_loader[i] = torch.utils.data.DataLoader(dataset=test, batch_size=batch_size, shuffle=False)
         return train_loader, test_loader
+    
+    def get_full_lines(self,batch_size=100):
+        train_loader = {}
+        test_loader = {}
+
+        self.reset()
+        train, test = self.full_data()
+        train_loader = torch.utils.data.DataLoader(dataset=train, batch_size=batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(dataset=test, batch_size=batch_size, shuffle=False)
+        return train_loader, test_loader
 
     def reset(self):
         self.cur_iter = 0

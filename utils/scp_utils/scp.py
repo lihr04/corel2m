@@ -77,7 +77,7 @@ class SCP(object):
 
             ### Update the temporary precision matrix
             for n, p in self.model.named_parameters():
-                precision_matrices[n].data += p.grad.data ** 2 / float(len(dataloader)*self.n_slices)
+                precision_matrices[n].data += p.grad.data ** 2 / float(len(dataloader.dataset)*self.n_slices)
 
         # Here we follow a similar approach as in the online EWC framework presented in
         # Chaudhry et al. ECCV2018 and also in Shwarz et al. ICML2018.

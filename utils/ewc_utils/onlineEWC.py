@@ -64,7 +64,7 @@ class OnlineEWC():
 
             ### Update the temporary precision matrix
             for n, p in self.model.named_parameters():
-                precision_matrices[n].data += p.grad.data ** 2 /float(len(dataloader))
+                precision_matrices[n].data += p.grad.data ** 2 /float(len(dataloader.dataset))
 
         # Here is the online part of the EWC. Instead of saving a precision Matrix
         # for each task, we take a running average of them. This is described in

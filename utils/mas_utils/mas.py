@@ -67,7 +67,7 @@ class MAS(object):
             loss.backward()#Get gradients
             ### Update the temporary precision matrix
             for n, p in self.model.named_parameters():
-                precision_matrices[n].data += p.grad.data ** 2 /float(len(dataloader))
+                precision_matrices[n].data += p.grad.data ** 2 /float(len(dataloader.dataset))
 
         # Here we follow a similar approach as in the online EWC framework presented in
         # Chaudhry et al. ECCV2018 and also in Shwarz et al. ICML2018.

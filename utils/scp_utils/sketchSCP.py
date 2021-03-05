@@ -130,6 +130,6 @@ class SketchSCP(object):
         '''
         matrix = torch.zeros(self.n_bucket, self.n_slices).to(self.device)
         for n, p in model.named_parameters():
-            vector += torch.sum((self._jacobian_matrices[n] * (p - self._means[n])).view(self.n_bucket, self.n_slices, -1), dim=2)
+            matrix += torch.sum((self._jacobian_matrices[n] * (p - self._means[n])).view(self.n_bucket, self.n_slices, -1), dim=2)
         loss = torch.sum(matrix ** 2)
         return loss

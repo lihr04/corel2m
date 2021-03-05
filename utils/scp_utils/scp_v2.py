@@ -70,7 +70,7 @@ class SCP(object):
                 out=torch.matmul(zmean,xi)
                 out.backward(retain_graph=True)
                 for n, p in self.model.named_parameters():
-                    precision_matrices[n].data += p.grad.data ** 2 / float(len(dataloader))
+                    precision_matrices[n].data += p.grad.data ** 2 / float(len(dataloader.dataset))
         for n, p in self.model.named_parameters():
             # Update the precision matrix
             self._precision_matrices[n]=self.alpha*self._precision_matrices[n]+(1-self.alpha)*precision_matrices[n]
