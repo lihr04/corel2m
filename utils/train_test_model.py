@@ -1,8 +1,3 @@
-__author__ = "Soheil Kolouri"
-__copyright__ = "Copyright (C) 2019 Soheil Kolouri"
-__license__ = "Public Domain"
-__version__ = "1.0"
-
 import numpy as np
 import torch
 import torch.utils.data
@@ -49,7 +44,7 @@ def train_classifier(model: nn.Module, optimizer: torch.optim,
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 
-def regularized_train_classifier(regularizer, optimizer: torch.optim,
+def regularized_train_classifier_old(regularizer, optimizer: torch.optim,
                                data_loader: torch.utils.data.DataLoader,
                                importance: float, device='cuda:0',labels=None):
     ''' regularized_train
@@ -90,7 +85,7 @@ def regularized_train_classifier(regularizer, optimizer: torch.optim,
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 
-def regularized_train_classifier_1(regularizer, optimizer: torch.optim,
+def regularized_train_classifier(regularizer, optimizer: torch.optim,
                                data_loader: torch.utils.data.DataLoader,
                                importance: float, device='cuda:0',labels=None):
     ''' regularized_train
@@ -126,8 +121,13 @@ def regularized_train_classifier_1(regularizer, optimizer: torch.optim,
         loss1 = criterion(output, target)
         epoch_loss += loss1.item()
         loss1.backward()
-        loss2 = regularizer.penalty(regularizer.model)        
-        loss = loss1+importance*loss2
+#         loss2 = regularizer.penalty(regularizer.model)
+        grad_penalty = regularizer.grad_penalty(regularizer.model)
+#         print(grad_penalty.shape)
+        position = 0
+        for n, p in regularizer.model.named_parameters():
+            size = p.view(-1).shape[0]
+            p.grad = p.grad + importance * grad_penalty[position:(position+size)].view_as(p.grad)
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 

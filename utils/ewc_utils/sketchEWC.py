@@ -15,8 +15,8 @@ class SketchEWC_1():
             
         self.LARGEPRIME = 2**61-1
         
-        self.device=device
-        self.alpha=alpha
+        self.device = device
+        self.alpha = alpha
         self.model = model.to(self.device)
         self.n_sketch = n_sketch
 
@@ -139,7 +139,19 @@ class SketchEWC_1():
         dtheta = torch.cat(dtheta)
         loss = torch.sum(torch.matmul(self._jacobian_matrices, dtheta) ** 2)
         return loss
-
+    
+    def grad_penalty(self, model:nn.Module):
+        ''' Generate the gradient of sketched EWC penalty.
+            This function receives the current model with its weights and its , and calculates
+            the the gradient of sketched EWC penalty on the loss.
+        '''
+        dtheta = []
+        for n, p in model.named_parameters():
+            dtheta.append((p - self._means[n]).view(-1))
+        dtheta = torch.cat(dtheta)
+        grad = torch.matmul(self._jacobian_matrices.t(), torch.matmul(self._jacobian_matrices, dtheta))
+        return grad
+        
 
 class SketchEWC_2():
     def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_sketch=50):

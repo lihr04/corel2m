@@ -133,3 +133,15 @@ class SketchSCP(object):
             matrix += torch.sum((self._jacobian_matrices[n] * (p - self._means[n])).view(self.n_bucket, self.n_slices, -1), dim=2)
         loss = torch.sum(matrix ** 2)
         return loss
+    
+    def grad_penalty(self, model:nn.Module):
+        ''' Generate the gradient of sketched SCP penalty.
+            This function receives the current model with its weights and its , and calculates
+            the the gradient of sketched EWC penalty on the loss.
+        '''
+        dtheta = []
+        for n, p in model.named_parameters():
+            dtheta.append((p - self._means[n]).view(-1))
+        dtheta = torch.cat(dtheta)
+        grad = torch.matmul(self._jacobian_matrices.t(), torch.matmul(self._jacobian_matrices, dtheta))
+        return grad
