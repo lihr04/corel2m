@@ -44,7 +44,7 @@ def train_classifier(model: nn.Module, optimizer: torch.optim,
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 
-def regularized_train_classifier_old(regularizer, optimizer: torch.optim,
+def regularized_train_classifier(regularizer, optimizer: torch.optim,
                                data_loader: torch.utils.data.DataLoader,
                                importance: float, device='cuda:0',labels=None):
     ''' regularized_train
@@ -85,7 +85,7 @@ def regularized_train_classifier_old(regularizer, optimizer: torch.optim,
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 
-def regularized_train_classifier(regularizer, optimizer: torch.optim,
+def regularized_train_classifier_1(regularizer, optimizer: torch.optim,
                                data_loader: torch.utils.data.DataLoader,
                                importance: float, device='cuda:0',labels=None):
     ''' regularized_train
