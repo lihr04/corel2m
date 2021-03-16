@@ -4,8 +4,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-class SketchEWC():
-    def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_sketch=50):
+class SketchMAS():
+    def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_bucket=50):
         """ OnlineEWC is the class for implementing the online EWC method.
             Inputs:
                 model : a Pytorch NN model
@@ -18,7 +18,7 @@ class SketchEWC():
         self.device = device
         self.alpha = alpha
         self.model = model.to(self.device)
-        self.n_sketch = n_sketch
+        self.n_bucket = n_bucket
 
         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
         self._means = {}
@@ -26,7 +26,7 @@ class SketchEWC():
         d=0
         for n, p in deepcopy(self.params).items():
             d+=p.data.view(-1).shape[0]
-        self._jacobian_matrices=torch.zeros((n_sketch,d)).to(self.device)
+        self._jacobian_matrices=torch.zeros((n_bucket,d)).to(self.device)
 
         for n, p in deepcopy(self.params).items():
             self._means[n] = p.data.to(self.device)
@@ -59,11 +59,11 @@ class SketchEWC():
         # computing bucket hashes (2-wise independence)
         h1 = hashes[0]
         h2 = hashes[1]
-        buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_sketch
+        buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_bucket
         buckets = buckets.to(self.device)
         
         # computing sketch matrix
-        sketch = torch.zeros(self.n_sketch, n_data).to(self.device)
+        sketch = torch.zeros(self.n_bucket, n_data).to(self.device)
         sketch[buckets, indices] = signs
 
         # computing sketched importance matrix
@@ -78,7 +78,7 @@ class SketchEWC():
         
         loss_sketch = torch.matmul(sketch, loss)
         
-        for r in range(self.n_sketch):
+        for r in range(self.n_bucket):
             self.model.zero_grad() # Zero the gradients
             loss_sketch[r].backward(retain_graph=True) #Get gradient
             ### Update the temporary precision matrix

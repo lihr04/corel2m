@@ -5,7 +5,7 @@ from torch import nn
 from torch.nn import functional as F
 
 class SketchEWC():
-    def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_sketch=50):
+    def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_bucket=50):
         """ OnlineEWC is the class for implementing the online EWC method.
             Inputs:
                 model : a Pytorch NN model
@@ -18,7 +18,7 @@ class SketchEWC():
         self.device = device
         self.alpha = alpha
         self.model = model.to(self.device)
-        self.n_sketch = n_sketch
+        self.n_bucket = n_bucket
 
         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
         self._means = {}
@@ -26,7 +26,7 @@ class SketchEWC():
         d=0
         for n, p in deepcopy(self.params).items():
             d+=p.data.view(-1).shape[0]
-        self._jacobian_matrices=torch.zeros((n_sketch,d)).to(self.device)
+        self._jacobian_matrices=torch.zeros((n_bucket,d)).to(self.device)
 
         for n, p in deepcopy(self.params).items():
             self._means[n] = p.data.to(self.device)
@@ -59,11 +59,11 @@ class SketchEWC():
         # computing bucket hashes (2-wise independence)
         h1 = hashes[0]
         h2 = hashes[1]
-        buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_sketch
+        buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_bucket
         buckets = buckets.to(self.device)
         
         # computing sketch matrix
-        sketch = torch.zeros(self.n_sketch, n_data).to(self.device)
+        sketch = torch.zeros(self.n_bucket, n_data).to(self.device)
         sketch[buckets, indices] = signs
 
         # The diagonal values of the FIM are essentially average  of the norm of
@@ -86,7 +86,7 @@ class SketchEWC():
         
         loss_sketch = torch.matmul(sketch, loss)
         
-        for r in range(self.n_sketch):
+        for r in range(self.n_bucket):
             self.model.zero_grad() # Zero the gradients
             loss_sketch[r].backward(retain_graph=True) #Get gradient
             ### Update the temporary precision matrix
@@ -147,7 +147,7 @@ class SketchEWC():
         
 
 # class SketchEWC_2():
-#     def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_sketch=50):
+#     def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_bucket=50):
 #         """ OnlineEWC is the class for implementing the online EWC method.
 #             Inputs:
 #                 model : a Pytorch NN model
@@ -160,7 +160,7 @@ class SketchEWC():
 #         self.device=device
 #         self.alpha=alpha
 #         self.model = model.to(self.device)
-#         self.n_sketch = n_sketch
+#         self.n_bucket = n_bucket
 
 #         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
 #         self._means = {}
@@ -168,7 +168,7 @@ class SketchEWC():
 #         d=0
 #         for n, p in deepcopy(self.params).items():
 #             d+=p.data.view(-1).shape[0]
-#         self._jacobian_matrices=torch.zeros((n_sketch,d)).to(self.device)
+#         self._jacobian_matrices=torch.zeros((n_bucket,d)).to(self.device)
 
 #         for n, p in deepcopy(self.params).items():
 #             self._means[n] = p.data.to(self.device)
@@ -201,11 +201,11 @@ class SketchEWC():
 #         # computing bucket hashes (2-wise independence)
 #         h1 = hashes[0]
 #         h2 = hashes[1]
-#         buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_sketch
+#         buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_bucket
 #         buckets = buckets.to(self.device)
         
 #         # computing sketch matrix
-#         sketch = torch.zeros(self.n_sketch, n_data).to(self.device)
+#         sketch = torch.zeros(self.n_bucket, n_data).to(self.device)
 #         sketch[buckets, indices] = signs
 
 #         # The diagonal values of the FIM are essentially average  of the norm of
@@ -228,7 +228,7 @@ class SketchEWC():
         
 #         loss_sketch = torch.matmul(sketch, loss)
         
-#         for r in range(self.n_sketch):
+#         for r in range(self.n_bucket):
 #             self.model.zero_grad() # Zero the gradients
 #             loss_sketch[r].backward(retain_graph=True) #Get gradient
 #             ### Update the temporary precision matrix
@@ -266,7 +266,7 @@ class SketchEWC():
 #         hashes = torch.randint(0, self.LARGEPRIME, (6,), dtype=torch.int64, device="cpu")
         
 #         # tokens are the indices of the vector entries
-#         indices = torch.arange(2 * self.n_sketch, dtype=torch.int64, device="cpu")
+#         indices = torch.arange(2 * self.n_bucket, dtype=torch.int64, device="cpu")
         
 #         # computing sign hashes (4 wise independence)
 #         h1 = hashes[2]
@@ -280,11 +280,11 @@ class SketchEWC():
 #         # computing bucket hashes (2-wise independence)
 #         h1 = hashes[0]
 #         h2 = hashes[1]
-#         buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_sketch
+#         buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_bucket
 #         buckets = buckets.to(self.device)
         
 #         # computing sketch matrix
-#         sketch = torch.zeros(self.n_sketch, 2 * self.n_sketch).to(self.device)
+#         sketch = torch.zeros(self.n_bucket, 2 * self.n_bucket).to(self.device)
 #         sketch[buckets, indices] = signs
         
 #         self._jacobian_matrices = torch.matmul(sketch, jacobian_matrices)
@@ -309,7 +309,7 @@ class SketchEWC():
     
 
 # class SketchEWC():
-#     def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_sketch=50):
+#     def __init__(self, model: nn.Module, device='cuda:0', alpha=.5, n_bucket=50):
 #         """ OnlineEWC is the class for implementing the online EWC method.
 #             Inputs:
 #                 model : a Pytorch NN model
@@ -321,7 +321,7 @@ class SketchEWC():
 #         self.device=device
 #         self.alpha=alpha
 #         self.model = model.to(self.device)
-#         self.n_sketch = n_sketch
+#         self.n_bucket = n_bucket
 
 #         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
 #         self._means = {}
@@ -330,7 +330,7 @@ class SketchEWC():
 
 #         for n, p in deepcopy(self.params).items():
 #             p.data.zero_()
-#             self._jacobian_matrices[n] = torch.stack([p.data for i in range(n_sketch)]).to(self.device)
+#             self._jacobian_matrices[n] = torch.stack([p.data for i in range(n_bucket)]).to(self.device)
 
 #         for n, p in deepcopy(self.params).items():
 #             self._means[n] = p.data.to(self.device)
@@ -348,7 +348,7 @@ class SketchEWC():
 #         jacobian_matrices = {}
 #         for n, p in deepcopy(self.params).items():
 #             p.data.zero_()
-#             jacobian_matrices[n] = torch.stack([p.data for i in range(self.n_sketch)]).to(self.device)
+#             jacobian_matrices[n] = torch.stack([p.data for i in range(self.n_bucket)]).to(self.device)
 
 #         # Set the model in the evaluation mode
 #         self.model.eval()
@@ -376,11 +376,11 @@ class SketchEWC():
 #         # computing bucket hashes (2-wise independence)
 #         h1 = hashes[0]
 #         h2 = hashes[1]
-#         buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_sketch
+#         buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_bucket
 #         buckets = buckets.to(self.device)
         
 #         # computing sketch matrix
-#         sketch = torch.zeros(self.n_sketch, n_data).to(self.device)
+#         sketch = torch.zeros(self.n_bucket, n_data).to(self.device)
 #         sketch[buckets, indices] = signs
 
 #         # The diagonal values of the FIM are essentially average  of the norm of
@@ -403,7 +403,7 @@ class SketchEWC():
         
 #         loss_sketch = torch.matmul(sketch, loss)
         
-#         for r in range(self.n_sketch):
+#         for r in range(self.n_bucket):
 #             self.model.zero_grad() # Zero the gradients
 #             loss_sketch[r].backward(retain_graph=True) #Get gradient
 #             ### Update the temporary precision matrix
@@ -426,8 +426,8 @@ class SketchEWC():
 #             This function receives the current model with its weights, and calculates
 #             the online EWC loss.
 #         '''
-#         vector = torch.zeros(self.n_sketch).to(self.device)
+#         vector = torch.zeros(self.n_bucket).to(self.device)
 #         for n, p in model.named_parameters():
-#             vector += torch.sum((self._jacobian_matrices[n] * (p - self._means[n])).view(self.n_sketch, -1), dim=1)
+#             vector += torch.sum((self._jacobian_matrices[n] * (p - self._means[n])).view(self.n_bucket, -1), dim=1)
 #         loss = torch.sum(vector ** 2)
 #         return loss
