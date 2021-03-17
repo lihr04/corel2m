@@ -105,8 +105,8 @@ class SketchMAS():
             dataloader : A Pytorch dataloader containing data from the task to be consolidated
         '''
         
-        self._jacobian_matrices = math.sqrt(self.alpha) * self._jacobian_matrices 
-                                + math.sqrt(1 - self.alpha) * self.calculate_jacobian(dataloader)
+        self._jacobian_matrices = math.sqrt(self.alpha) * self._jacobian_matrices + \
+                                  math.sqrt(1 - self.alpha) * self.calculate_jacobian(dataloader)
 
         for n, p in self.model.named_parameters():
             self._means[n] = deepcopy(p.data).to(self.device)

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=SketchEWC
+#SBATCH --job-name=SketchMAS
 #SBATCH --time=5:0:0
 #SBATCH --partition=gpuk80
 #SBATCH --gres=gpu:1
