@@ -95,22 +95,8 @@ class SketchMAS():
     def calculate_approximation(self, dataloader: torch.utils.data.DataLoader, labels=None):
         jacobian_matrices = self.calculate_jacobian(dataloader)
         return torch.matmul(jacobian_matrices.t(), jacobian_matrices)
-
+           
     def consolidate(self, dataloader: torch.utils.data.DataLoader, labels=None):
-        ''' Consolidate
-         This function receives a dataloader, it then calculates and updates the
-         Fisher Information Matrix (FIM) to preserve the max log-likelihood for
-         the data in dataloader.
-         input:
-            dataloader : A Pytorch dataloader containing data from the task to be consolidated
-        '''
-        
-        self._jacobian_matrices = self._jacobian_matrices + self.calculate_jacobian(dataloader)
-
-        for n, p in self.model.named_parameters():
-            self._means[n] = deepcopy(p.data).to(self.device)
-            
-    def consolidate_old(self, dataloader: torch.utils.data.DataLoader, labels=None):
         ''' Consolidate
          This function receives a dataloader, it then calculates and updates the
          Fisher Information Matrix (FIM) to preserve the max log-likelihood for
