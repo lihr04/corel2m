@@ -111,7 +111,7 @@ class KFAC(object):
 
     def reset_cov(self) -> None:
         for block in self.blocks:
-            block.reset_cov()
+            block.reset()
 
     def _add_weight_decay(self, grads_and_layers: Iterable[Tuple[Iterable[torch.Tensor], FisherBlock]]) -> Iterable[Tuple[Iterable[torch.Tensor], FisherBlock]]:
         """Applies weight decay.

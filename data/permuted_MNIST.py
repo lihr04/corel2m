@@ -35,5 +35,5 @@ def get_permuted_mnist(num_task=3,batch_size=100,num_workers=4):
                                                       num_workers=num_workers)
         test_loader[i] = torch.utils.data.DataLoader(PermutedMNIST(train=False, permute_idx=idx),
                                                      batch_size=batch_size)
-#         random.shuffle(idx)
+        random.shuffle(idx)
     return train_loader, test_loader

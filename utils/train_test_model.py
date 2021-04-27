@@ -131,6 +131,40 @@ def regularized_train_classifier_1(regularizer, optimizer: torch.optim,
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 
+def kfac_train_classifier(regularizer, optimizer: torch.optim,
+                          data_loader: torch.utils.data.DataLoader,
+                          importance: float, device='cuda:0',labels=None):
+    ''' regularized_train
+    This function performs an epoch of training with regularized loss.
+    Inputs:
+        regularizer: the NN model with importance parameters
+        optimizer: the optimizer to be used
+        data_loader: the training data
+        device (str): the device to run optimization on [default 'cuda:0']
+        importance (float): the regularizer coefficient
+        device (str): the device to run optimization on [default 'cuda:0']
+    '''
+    regularizer.model.to(device)
+    regularizer.model.train()
+    criterion=nn.CrossEntropyLoss()
+    epoch_loss = 0
+    for img, target in data_loader:
+        img, target = img.to(device), target.type(torch.LongTensor).to(device)
+        optimizer.zero_grad()
+        batch_size = img.shape[0]
+        
+        with regularizer.track_forward():
+            output = regularizer.model(img)
+            loss1 = criterion(output, target)
+        with regularizer.track_backward():
+            loss1.backward()
+        epoch_loss += loss1.item()
+        regularizer.update_current_cov(weight=batch_size)
+        
+        regularizer.update_grad_penalty(importance=importance)
+        optimizer.step()
+    return epoch_loss / float(len(data_loader))
+
 def onlineEWC_train_classifier(ewc: OnlineEWC, optimizer: torch.optim,
                                data_loader: torch.utils.data.DataLoader,
                                importance: float, device='cuda:0',labels=None):

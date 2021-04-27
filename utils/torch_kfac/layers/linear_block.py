@@ -32,7 +32,7 @@ class FullyConnectedFisherBlock(ExtensionFisherBlock):
         super().setup(**kwargs)
         self._center = center
 
-    def update_cov(self, cov_ema_decay: float = 1.0) -> None:
+    def update_cov(self, cov_ema_decay: float = 1.0, weight: float = 1.0) -> None:
         if self._activations is None or self._sensitivities is None:
             return
         act, sen = self._activations, self._sensitivities
@@ -45,8 +45,8 @@ class FullyConnectedFisherBlock(ExtensionFisherBlock):
 
         activation_cov = compute_cov(act)
         sensitivity_cov = compute_cov(sen)
-        self._activations_cov.add_to_average(activation_cov, cov_ema_decay)
-        self._sensitivities_cov.add_to_average(sensitivity_cov, cov_ema_decay)
+        self._activations_cov.add_to_average(activation_cov, cov_ema_decay, weight)
+        self._sensitivities_cov.add_to_average(sensitivity_cov, cov_ema_decay, weight)
 
     def grads_to_mat(self, grads: Iterable[torch.Tensor]) -> torch.Tensor:
         if self.has_bias:

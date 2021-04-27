@@ -22,7 +22,7 @@ class MovingAverageVariable(object):
 
     @property
     def value(self) -> torch.Tensor:
-        if self._normalize_value:
+        if self._normalize_value and not self._total_weight == 0:
             return self._var / self._total_weight
         else:
             return self._var.clone()
