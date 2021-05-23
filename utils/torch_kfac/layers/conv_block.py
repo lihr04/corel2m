@@ -30,10 +30,13 @@ class ConvFisherBlock(ExtensionFisherBlock):
         self._sensitivities = None
 
         self._center = False
+        
+        self.renorm_coeff = 1.
 
     @torch.no_grad()
     def forward_hook(self, module: Union[Conv1d, Conv2d, Conv3d], inp: torch.Tensor, out: torch.Tensor) -> None:
         self._activations = self.extract_patches(inp[0])
+        self.renorm_coeff = float(self._activations.shape[1])
 
     @torch.no_grad()
     def backward_hook(self, module: Union[Conv1d, Conv2d, Conv3d], grad_inp: torch.Tensor, grad_out: torch.Tensor) -> None:
@@ -86,9 +89,9 @@ class ConvFisherBlock(ExtensionFisherBlock):
         else:
             return mat_grads.view_as(self.module.weight),
 
-    @property
-    def renorm_coeff(self) -> float:
-        return self._activations.shape[1]
+    # @property
+    # def renorm_coeff(self) -> float:
+    #     return self._activations.shape[1]
 
     @property
     def has_bias(self) -> bool:

@@ -17,6 +17,8 @@ class FisherBlock(object):
 
         self._forward_lock = False
         self._backward_lock = False
+        
+        self.renorm_coeff = 1.
 
     def setup(self, forward_lock: Lock, backward_lock: Lock, **kwargs) -> None:
         self._forward_lock = forward_lock
@@ -103,9 +105,9 @@ class FisherBlock(object):
         for var, grad in zip(self.vars, new_grads):
             var.grad.data += alpha * grad
     
-    @property
-    def renorm_coeff(self) -> float:
-        return 1.
+    # @property
+    # def renorm_coeff(self) -> float:
+    #     return 1.
 
 
 class ExtensionFisherBlock(FisherBlock):

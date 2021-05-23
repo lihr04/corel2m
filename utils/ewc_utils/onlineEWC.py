@@ -84,6 +84,6 @@ class OnlineEWC():
         '''
         loss = 0
         for n, p in model.named_parameters():
-            _loss = self._precision_matrices[n] * (p - self._means[n]) ** 2
+            _loss = 0.5 * self._precision_matrices[n] * (p - self._means[n]) ** 2
             loss += _loss.sum()
         return loss

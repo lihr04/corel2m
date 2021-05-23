@@ -84,7 +84,7 @@ class EWC():
         '''
         loss = 0
         for n, p in model.named_parameters():
-            _loss = self._precision_matrices[n] * (p - self._means[n]) ** 2
+            _loss = 0.5 * self._precision_matrices[n] * (p - self._means[n]) ** 2
             loss += _loss.sum()
         return loss
 
@@ -234,10 +234,9 @@ class SketchEWC():
         for n, p in model.named_parameters():
             dtheta.append((p - self._means[n]).view(-1))
         dtheta=torch.cat(dtheta)
-#         loss=torch.sum(torch.matmul(self._jacobian_matrices, dtheta.unsqueeze(1)) ** 2)
-        loss=torch.matmul(dtheta.unsqueeze(0),
-                          torch.matmul(self.fim,
-                                       dtheta.unsqueeze(1)))
+        loss = 0.5 * torch.matmul(dtheta.unsqueeze(0),
+                                  torch.matmul(self.fim,
+                                               dtheta.unsqueeze(1)))
         return loss
     
 class FullEWC():
@@ -320,9 +319,9 @@ class FullEWC():
         for n, p in model.named_parameters():
             dtheta.append((p - self._means[n]).view(-1))
         dtheta=torch.cat(dtheta)
-        loss=torch.matmul(dtheta.unsqueeze(0),
-                          torch.matmul(self.fim,
-                                       dtheta.unsqueeze(1)))
+        loss = 0.5 * torch.matmul(dtheta.unsqueeze(0),
+                                  torch.matmul(self.fim,
+                                               dtheta.unsqueeze(1)))
         return loss
     
 class BlockDiagonalEWC():
@@ -358,28 +357,28 @@ class BlockDiagonalEWC():
                 self.model.zero_grad() # Zero the gradients
                 loss.backward(retain_graph=True)
                 
-#                 grad=[]
-#                 dimension=0
-#                 for n, p in self.params.items():
-#                     grad.append(p.grad.data.view(-1))
-#                     if 'bias' not in n:
-#                         last_dimension = dimension
-#                         dimension += p.grad.data.view(-1).shape[0]
-#                     else:
-#                         dimension += p.grad.data.view(-1).shape[0]
-#                         grad=torch.cat(grad)
-#                         A[last_dimension:dimension, last_dimension:dimension] += torch.matmul(grad.unsqueeze(1),grad.unsqueeze(0))
-#                         grad=[]
                 grad=[]
+                dimension=0
                 for n, p in self.params.items():
                     grad.append(p.grad.data.view(-1))
-                grad=torch.cat(grad)
-                d=grad.shape[0]
-                for dimension in range(0, d, self.n_bucket):
-                    next_dimension = min(dimension + self.n_bucket, d)
-                    A[dimension:next_dimension, dimension:next_dimension] += torch.matmul(
-                        grad[dimension:next_dimension].unsqueeze(1),
-                        grad[dimension:next_dimension].unsqueeze(0))
+                    if 'bias' not in n:
+                        last_dimension = dimension
+                        dimension += p.grad.data.view(-1).shape[0]
+                    else:
+                        dimension += p.grad.data.view(-1).shape[0]
+                        grad=torch.cat(grad)
+                        A[last_dimension:dimension, last_dimension:dimension] += torch.matmul(grad.unsqueeze(1),grad.unsqueeze(0))
+                        grad=[]
+                # grad=[]
+                # for n, p in self.params.items():
+                #     grad.append(p.grad.data.view(-1))
+                # grad=torch.cat(grad)
+                # d=grad.shape[0]
+                # for dimension in range(0, d, self.n_bucket):
+                #     next_dimension = min(dimension + self.n_bucket, d)
+                #     A[dimension:next_dimension, dimension:next_dimension] += torch.matmul(
+                #         grad[dimension:next_dimension].unsqueeze(1),
+                #         grad[dimension:next_dimension].unsqueeze(0))
         A=A/float(len(dataloader.dataset))
         return A
 
@@ -411,9 +410,9 @@ class BlockDiagonalEWC():
         for n, p in model.named_parameters():
             dtheta.append((p - self._means[n]).view(-1))
         dtheta=torch.cat(dtheta)
-        loss=torch.matmul(dtheta.unsqueeze(0),
-                          torch.matmul(self.fim,
-                                       dtheta.unsqueeze(1)))
+        loss = 0.5 * torch.matmul(dtheta.unsqueeze(0),
+                                  torch.matmul(self.fim,
+                                               dtheta.unsqueeze(1)))
         return loss
 
 class LowRankEWC():
@@ -487,9 +486,9 @@ class LowRankEWC():
         for n, p in model.named_parameters():
             dtheta.append((p - self._means[n]).view(-1))
         dtheta=torch.cat(dtheta)
-        loss=torch.matmul(dtheta.unsqueeze(0),
-                          torch.matmul(self.fim,
-                                       dtheta.unsqueeze(1)))
+        loss = 0.5 * torch.matmul(dtheta.unsqueeze(0),
+                                  torch.matmul(self.fim,
+                                               dtheta.unsqueeze(1)))
         return loss
 
 class MinorDiagonalEWC():
@@ -565,7 +564,7 @@ class MinorDiagonalEWC():
         for n, p in model.named_parameters():
             dtheta.append((p - self._means[n]).view(-1))
         dtheta=torch.cat(dtheta)
-        loss=torch.matmul(dtheta.unsqueeze(0),
-                          torch.matmul(self.fim,
-                                       dtheta.unsqueeze(1)))
+        loss = 0.5 * torch.matmul(dtheta.unsqueeze(0),
+                                  torch.matmul(self.fim,
+                                               dtheta.unsqueeze(1)))
         return loss

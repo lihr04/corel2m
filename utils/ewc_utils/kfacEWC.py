@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from utils.torch_kfac.layers import init_fisher_block, FisherBlock
-from utils.torch_kfac.utils import Lock, inner_product_pairs, scalar_product_pairs
+from utils.torch_kfac.utils import Lock, inner_product_pairs, scalar_product_pairs, kronecker_product
 
 
 class KfacEWC(object):
@@ -92,14 +92,18 @@ class KfacEWC(object):
             
             # Moving average
             layer._activations_cov.add_to_average(current_layer._activations_cov.value, 
-                                                  decay=self.decay, 
-                                                  weight=self.weight)
+                                                  decay=math.sqrt(self.decay), 
+                                                  weight=math.sqrt(self.weight))
             layer._sensitivities_cov.add_to_average(current_layer._sensitivities_cov.value, 
-                                                    decay=self.decay, 
-                                                    weight=self.weight)
+                                                    decay=math.sqrt(self.decay), 
+                                                    weight=math.sqrt(self.weight))
             
             # Record anchored weights
-            layer.module = deepcopy(current_layer.module).to(self.device)
+            layer.module.load_state_dict(current_layer.module.state_dict())
+            
+            
+    def calculate_approximation(self):
+        return 
 
 
     def update_grad_penalty(self, importance=1):
@@ -114,6 +118,7 @@ class KfacEWC(object):
             layer = self.blocks[i]
             current_layer = self.current_blocks[i]
             if any(grad is not None for grad in current_layer.grads):
+                layer.renorm_coeff = current_layer.renorm_coeff
                 vars_and_layers.append(
                     ([current_layer.vars[j] - layer.vars[j] 
                       for j in range(len(layer.vars))], layer))

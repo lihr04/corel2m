@@ -130,7 +130,7 @@ class SketchEWC():
         for n, p in model.named_parameters():
             dtheta.append((p - self._means[n]).view(-1))
         dtheta = torch.cat(dtheta)
-        loss = torch.sum(torch.matmul(self._jacobian_matrices, dtheta) ** 2)
+        loss = 0.5 * torch.sum(torch.matmul(self._jacobian_matrices, dtheta) ** 2)
         return loss
     
     def grad_penalty(self, model:nn.Module):

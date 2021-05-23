@@ -85,51 +85,51 @@ def regularized_train_classifier(regularizer, optimizer: torch.optim,
         optimizer.step()
     return epoch_loss / float(len(data_loader))
 
-def regularized_train_classifier_1(regularizer, optimizer: torch.optim,
-                               data_loader: torch.utils.data.DataLoader,
-                               importance: float, device='cuda:0',labels=None):
-    ''' regularized_train
-    This function performs an epoch of training with regularized loss.
-    Inputs:
-        regularizer: the NN model with importance parameters
-        optimizer: the optimizer to be used
-        data_loader: the training data
-        device (str): the device to run optimization on [default 'cuda:0']
-        importance (float): the regularizer coefficient
-        device (str): the device to run optimization on [default 'cuda:0']
-    '''
-    regularizer.model.to(device)
-    regularizer.model.train()
-    criterion=nn.CrossEntropyLoss()
-    epoch_loss = 0
-    for img, target in data_loader:
-        img, target = img.to(device), target.type(torch.LongTensor).to(device)
-        optimizer.zero_grad()
+# def regularized_train_classifier_new(regularizer, optimizer: torch.optim,
+#                                data_loader: torch.utils.data.DataLoader,
+#                                importance: float, device='cuda:0',labels=None):
+#     ''' regularized_train
+#     This function performs an epoch of training with regularized loss.
+#     Inputs:
+#         regularizer: the NN model with importance parameters
+#         optimizer: the optimizer to be used
+#         data_loader: the training data
+#         device (str): the device to run optimization on [default 'cuda:0']
+#         importance (float): the regularizer coefficient
+#         device (str): the device to run optimization on [default 'cuda:0']
+#     '''
+#     regularizer.model.to(device)
+#     regularizer.model.train()
+#     criterion=nn.CrossEntropyLoss()
+#     epoch_loss = 0
+#     for img, target in data_loader:
+#         img, target = img.to(device), target.type(torch.LongTensor).to(device)
+#         optimizer.zero_grad()
         
-        if labels is None:
-            output = regularizer.model(img)
-        else:
-            try:
-                output = regularizer.model.classifier(img)[:,labels]
-            except:
-                output = regularizer.model(img)[:,labels]
+#         if labels is None:
+#             output = regularizer.model(img)
+#         else:
+#             try:
+#                 output = regularizer.model.classifier(img)[:,labels]
+#             except:
+#                 output = regularizer.model(img)[:,labels]
                 
-            for i,l in enumerate(labels):
-                target.data[target.data==l]=i
-            target.type(torch.LongTensor).to(device)           
+#             for i,l in enumerate(labels):
+#                 target.data[target.data==l]=i
+#             target.type(torch.LongTensor).to(device)           
             
-        loss1 = criterion(output, target)
-        epoch_loss += loss1.item()
-        loss1.backward()
-#         loss2 = regularizer.penalty(regularizer.model)
-        grad_penalty = regularizer.grad_penalty(regularizer.model)
-#         print(grad_penalty.shape)
-        position = 0
-        for n, p in regularizer.model.named_parameters():
-            size = p.view(-1).shape[0]
-            p.grad = p.grad + importance * grad_penalty[position:(position+size)].view_as(p.grad)
-        optimizer.step()
-    return epoch_loss / float(len(data_loader))
+#         loss1 = criterion(output, target)
+#         epoch_loss += loss1.item()
+#         loss1.backward()
+# #         loss2 = regularizer.penalty(regularizer.model)
+#         grad_penalty = regularizer.grad_penalty(regularizer.model)
+# #         print(grad_penalty.shape)
+#         position = 0
+#         for n, p in regularizer.model.named_parameters():
+#             size = p.view(-1).shape[0]
+#             p.grad = p.grad + importance * grad_penalty[position:(position+size)].view_as(p.grad)
+#         optimizer.step()
+#     return epoch_loss / float(len(data_loader))
 
 def kfac_train_classifier(regularizer, optimizer: torch.optim,
                           data_loader: torch.utils.data.DataLoader,
