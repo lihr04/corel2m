@@ -68,7 +68,7 @@ class SCP(object):
         K= zmean.shape[0]
 
         # Randomly sample $\mathbb{S}^{K-1}$.
-        xi=torch.stack([(xi_/torch.sqrt((xi_**2).sum())).to(self.device) for xi_ in torch.randn((K,self.n_slices))])
+        xi=torch.stack([(xi_/torch.sqrt((xi_**2).sum())).to(self.device) for xi_ in torch.randn((self.n_slices,K))]).t()
 
         for l in range(self.n_slices):
             self.model.zero_grad()

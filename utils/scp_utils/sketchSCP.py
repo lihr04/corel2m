@@ -36,21 +36,37 @@ class SketchSCP():
 
         for n, p in deepcopy(self.params).items():
             self._means[n] = p.data.to(self.device)
-    
-    def calculate_jacobian(self, dataloader: torch.utils.data.DataLoader, labels=None):
-        self.model.eval()
-        
-        jacobian_matrices = torch.zeros_like(self._jacobian_matrices).to(self.device)
+            
+    def calculate_sketch(self, n_bucket, n_data, LARGEPRIME=2**61-1, device='cuda:0'):
+        """
+        Calculate CountSketch matrix.
+
+        Parameters
+        ----------
+        n_bucket : int
+            number of buckets, aka size of sketch.
+        n_data : int
+            number of data inputs to be sketched.
+        LARGEPRIME : int, optional
+            large prime for sketch computing. The default is 2**61-1.
+        device : string, optional
+            device where the output sketch is stored. The default is 'cuda:0'.
+
+        Returns
+        -------
+        sketch : torch.Tensor
+            output sketch with size (n_bucket, n_data).
+
+        """
         
         # initialize hashing functions for each row:
         # 2 random numbers for bucket hashes + 4 random numbers for
         # sign hashes
 
         # do all these computations on the CPU
-        hashes = torch.randint(0, self.LARGEPRIME, (6,), dtype=torch.int64, device="cpu")
+        hashes = torch.randint(0, LARGEPRIME, (6,), dtype=torch.int64, device="cpu")
         
         # tokens are the indices of the vector entries
-        n_data = len(dataloader.dataset)
         indices = torch.arange(n_data, dtype=torch.int64, device="cpu")
         
         # computing sign hashes (4 wise independence)
@@ -59,18 +75,27 @@ class SketchSCP():
         h3 = hashes[4]
         h4 = hashes[5]
         signs = (((h1 * indices + h2) * indices + h3) * indices + h4)
-        signs = ((signs % self.LARGEPRIME % 2) * 2 - 1).float()
-        signs = signs.to(self.device)
+        signs = ((signs % LARGEPRIME % 2) * 2 - 1).float()
+        signs = signs.to(device)
 
         # computing bucket hashes (2-wise independence)
         h1 = hashes[0]
         h2 = hashes[1]
-        buckets = ((h1 * indices) + h2) % self.LARGEPRIME % self.n_bucket
-        buckets = buckets.to(self.device)
+        buckets = ((h1 * indices) + h2) % LARGEPRIME % n_bucket
+        buckets = buckets.to(device)
         
         # computing sketch matrix
-        sketch = torch.zeros(self.n_bucket, n_data).to(self.device)
+        sketch = torch.zeros(n_bucket, n_data).to(device)
         sketch[buckets, indices] = signs
+        
+        return sketch
+    
+    def calculate_jacobian(self, dataloader: torch.utils.data.DataLoader, labels=None):
+        self.model.eval()
+        
+        jacobian_matrices = torch.zeros_like(self._jacobian_matrices).to(self.device)
+        
+        n_data = len(dataloader.dataset)
         
         # Get network output
         output=list()
@@ -78,25 +103,28 @@ class SketchSCP():
             output.append(self.model(x.to(self.device)))            
         output=torch.cat(output)
         K= output.shape[1]
-
+        
+        sketch = self.calculate_sketch(self.n_bucket, n_data, self.LARGEPRIME, self.device)
         # Randomly sample $\mathbb{S}^{K-1}$.
-        xi=torch.stack([(xi_/torch.sqrt((xi_**2).sum())).to(self.device) for xi_ in torch.randn((K,self.n_slices))])
+        xi=torch.stack([(xi_/torch.sqrt((xi_**2).sum())).to(self.device) for xi_ in torch.randn((self.n_slices,K))]).t()
         
         output_sketch = torch.matmul(torch.matmul(sketch, output), xi)
-        output_sketch = torch.sum(output_sketch, dim=1)
         
-        for l in range(self.n_bucket):
-            self.model.zero_grad() # Zero the gradients
-            output_sketch[l].backward(retain_graph=True) # Get gradients
-            ### Update the temporary precision matrix
-            # for n, p in self.model.named_parameters():
-            #     self._jacobian_matrices[n].data[l,k] += (1-self.alpha) / math.sqrt(n_data) * p.grad.data
-            jacobian = []
-            for n, p in self.model.named_parameters():
-                jacobian.append(p.grad.data.view(-1))
-            jacobian=torch.cat(jacobian)
-            jacobian_matrices[l,:] += jacobian
-        jacobian_matrices=jacobian_matrices/math.sqrt(float(len(dataloader.dataset)*self.n_slices))
+        for l in range(self.n_slices):
+            sketch = self.calculate_sketch(self.n_bucket, n_data, self.LARGEPRIME, self.device)
+            output_sketch=torch.matmul(torch.matmul(sketch, output),xi[:,l])
+            for r in range(self.n_bucket):
+                self.model.zero_grad() # Zero the gradients
+                output_sketch[r].backward(retain_graph=True) # Get gradients
+                ### Update the temporary precision matrix
+                # for n, p in self.model.named_parameters():
+                #     self._jacobian_matrices[n].data[l,k] += (1-self.alpha) / math.sqrt(n_data) * p.grad.data
+                jacobian = []
+                for n, p in self.model.named_parameters():
+                    jacobian.append(p.grad.data.view(-1))
+                jacobian=torch.cat(jacobian)
+                jacobian_matrices[r,:] += jacobian
+        jacobian_matrices = jacobian_matrices / math.sqrt(float(len(dataloader.dataset)*self.n_slices))
         return jacobian_matrices
 
     def calculate_approximation(self, dataloader: torch.utils.data.DataLoader, labels=None):
