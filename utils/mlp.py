@@ -68,6 +68,7 @@ class MLP(nn.Module):
 
     def forward(self, x):
         x=x.to(self.device)
+        x = x.view(x.size(0), -1)
         for module in self.layers:
             x=module(x)
         return x

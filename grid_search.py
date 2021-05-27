@@ -46,10 +46,10 @@ if not os.path.isdir(results_folder):
 #%% Hyperparameters
 
 experiment_id = args.id
-seed = experiment_id + 40
+seed = experiment_id
 
 input_size = 784
-hidden_sizes = [1024,512,256]
+hidden_sizes = [256,256]
 output_size = 10
 activation='ReLU'
 device='cuda:0'
@@ -58,7 +58,7 @@ num_task = args.task
 epochs = 20
 
 batch_size = 100 
-lr = 1e-4
+lr = 1e-3
 alpha=0.25
 
 importance_power_list = args.importance_power
@@ -74,9 +74,10 @@ np.random.seed(seed)
 torch.manual_seed(seed)
 
 if args.data == 'perm_mnist':
-    train_loader, test_loader = get_permuted_mnist(num_task,batch_size)
+    train_loader, test_loader = get_permuted_mnist(num_task,batch_size,num_workers=4)
 elif args.data == 'rotated_mnist':
-    train_loader, test_loader = get_rotated_mnist(num_task,batch_size)
+    per_task_rotation = 180.0 / num_task
+    train_loader, test_loader = get_rotated_mnist(num_task,batch_size,per_task_rotation=per_task_rotation,num_workers=4)
 
 
 #%% Model init
