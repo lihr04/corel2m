@@ -49,7 +49,7 @@ experiment_id = args.id
 seed = experiment_id
 
 input_size = 784
-hidden_sizes = [256,256]
+hidden_sizes = [1024,512,256]
 output_size = 10
 activation='ReLU'
 device='cuda:0'
@@ -58,7 +58,7 @@ num_task = args.task
 epochs = 20
 
 batch_size = 100 
-lr = 1e-3
+lr = 1e-4
 alpha=0.25
 
 importance_power_list = args.importance_power
