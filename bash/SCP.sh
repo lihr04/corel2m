@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=SCP
-#SBATCH --time=5:0:0
+#SBATCH --time=3:0:0
 #SBATCH --partition=gpuk80
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
@@ -13,5 +13,5 @@ ml anaconda
 ml cuda/10.1
 conda activate torch
 mkdir -p logs
-python grid_search.py -r SCP --id $SLURM_ARRAY_TASK_ID -p 4 5 6 7 8 -s 50 -t 20 > logs/SCP_$SLURM_ARRAY_TASK_ID
+python grid_search.py -r SCP --id $SLURM_ARRAY_TASK_ID -p 6 7 8 -s 10 > logs/SCP_$SLURM_ARRAY_TASK_ID
 echo "Finished with job $SLURM_JOBID task $SLURM_ARRAY_TASK_ID"
